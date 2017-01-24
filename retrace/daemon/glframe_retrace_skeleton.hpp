@@ -78,6 +78,9 @@ class FrameRetraceSkeleton : public Thread,
   virtual void onMetrics(const MetricSeries &metricData,
                          ExperimentId experimentCount,
                          SelectionId selectionCount);
+  virtual void onTexturesList(const std::vector<TexturesId> &ids);
+  virtual void onTextures(RenderId renderId,
+                     const std::vector<TextureData> &textures);
   virtual void onApi(RenderId renderid,
                      const std::vector<std::string> &api_calls);
   virtual void onError(const std::string &message);

@@ -14,6 +14,7 @@ enum RequestType {
   ALL_METRICS_REQUEST = 5;
   REPLACE_SHADERS_REQUEST = 6;
   API_REQUEST = 7;
+  TEXTURES_REQUEST = 8;
 };
 
 message OpenFileRequest {
@@ -148,6 +149,26 @@ message ErrorResponse {
   required string message = 1;
 }
 
+message TextureData {
+  required uint32 texture_id = 1;
+  required uint32 texture_unit = 2;
+  required uint32 texture_width = 3;
+  required uint32 texture_height = 4;
+  required uint32 texture_data_type = 5;
+  required uint32 texture_data_format = 6;
+  required uint32 mipmap = 7;
+  required string texture = 9;
+}
+
+message TexturesRequest {
+  required uint32 render_id = 1;
+}
+
+message TexturesResponse {
+  required uint32 render_id = 1;
+  repeated TextureData textures = 2;
+}
+
 message RetraceRequest {
   required RequestType requestType = 1;
   optional RenderTargetRequest renderTarget = 2;
@@ -157,6 +178,7 @@ message RetraceRequest {
   optional AllMetricsRequest allMetrics = 6;
   optional ReplaceShadersRequest shaders = 7;
   optional ApiResponse api = 8;
+  optional TexturesRequest textures = 9;
 }
 
 message RetraceResponse {
@@ -168,4 +190,5 @@ message RetraceResponse {
   optional ReplaceShadersResponse shadersData = 6;
   optional ApiResponse api = 7;
   optional ErrorResponse error = 8;
+  optional TexturesResponse textures = 9;
 }

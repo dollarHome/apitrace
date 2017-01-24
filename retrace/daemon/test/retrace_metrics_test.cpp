@@ -73,6 +73,11 @@ class MetricsCallback : public OnFrameRetrace {
   void onApi(RenderId renderId,
              const std::vector<std::string> &api_calls) {}
   void onError(const std::string &message) {}
+  void onTexturesList(const std::vector<TexturesId> &ids) {
+  }
+  void onTextures(RenderId renderId,
+                     const std::vector<TextureData> &textures) {
+  }
   std::vector<MetricId> ids;
   std::vector<std::string> names;
   std::vector<MetricSeries> data;

@@ -4,6 +4,7 @@
         <file>qml/BarGraphControl.qml</file>
         <file>qml/ShaderControl.qml</file>
         <file>qml/MetricTabControl.qml</file>
+        <file>qml/TexturesTabControl.qml</file>
         <file>qml/RefreshControl.qml</file>
         <file>qml/images/retracer_icon.png</file>
         <file>qml/RenderShadersControl.qml</file>

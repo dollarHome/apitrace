@@ -47,6 +47,7 @@
 #include "glframe_retrace_stub.hpp"
 #include "glframe_shader_model.hpp"
 #include "glframe_metrics_model.hpp"
+#include "glframe_textures_model.hpp"
 
 namespace glretrace {
 
@@ -115,6 +116,7 @@ class FrameRetraceModel : public QObject,
   Q_PROPERTY(QString argvZero READ argvZero WRITE setArgvZero
              NOTIFY onArgvZero)
   Q_PROPERTY(glretrace::QMetricsModel* metricTab READ metricTab CONSTANT)
+  Q_PROPERTY(glretrace::QTexturesModel* texturesTab READ texturesTab CONSTANT)
 
  public:
   FrameRetraceModel();
@@ -156,6 +158,9 @@ class FrameRetraceModel : public QObject,
   void onMetrics(const MetricSeries &metricData,
                  ExperimentId experimentCount,
                  SelectionId selectionCount);
+  void onTexturesList(const std::vector<TexturesId> &ids);
+  void onTextures(RenderId renderId,
+                     const std::vector<TextureData> &textures);
   void onApi(RenderId renderId, const std::vector<std::string> &api_calls);
   void onError(const std::string &message);
   void onShadersChanged();
@@ -168,6 +173,7 @@ class FrameRetraceModel : public QObject,
   QString argvZero() { return main_exe; }
   void setArgvZero(const QString &a) { main_exe = a; emit onArgvZero(); }
   QMetricsModel *metricTab() { return &m_metrics_table; }
+  QTexturesModel *texturesTab() { return &m_textures_table; }
 
   bool clearBeforeRender() const;
   void setClearBeforeRender(bool v);
@@ -201,6 +207,7 @@ class FrameRetraceModel : public QObject,
   mutable std::mutex m_protect;
   FrameRetraceStub m_retrace;
   QMetricsModel m_metrics_table;
+  QTexturesModel m_textures_table;
   FrameState *m_state;
   QSelection *m_selection;
   SelectionId m_selection_count;
@@ -212,13 +219,13 @@ class FrameRetraceModel : public QObject,
   QRenderShadersList m_shaders;
   QString m_shader_compile_error;
   QString main_exe;  // for path to frame_retrace_server
-
   QString m_api_calls;
   int m_open_percent;
 
   // thread-safe storage for member data updated from the retrace
   // socket thread.
   std::vector<MetricId> t_ids;
+  std::vector<TexturesId> txts_ids;
   std::vector<std::string> t_names;
 
   std::vector<MetricId> m_active_metrics;

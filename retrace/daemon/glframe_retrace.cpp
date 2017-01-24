@@ -435,3 +435,9 @@ FrameRetrace::retraceApi(RenderId renderId,
     return m_tracker.onApi(callback);
   m_renders[renderId.index()]->onApi(renderId, callback);
 }
+
+void
+FrameRetrace::retraceAllTextures(const RenderSelection &selection,
+                                ExperimentId experimentCount,
+                                OnFrameRetrace *callback) const {
+}

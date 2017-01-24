@@ -45,7 +45,9 @@ using glretrace::FrameRetraceSkeleton;
 using glretrace::FrameRetraceStub;
 using glretrace::IFrameRetrace;
 using glretrace::MetricId;
+using glretrace::TexturesId;
 using glretrace::MetricSeries;
+using glretrace::TextureData;
 using glretrace::OnFrameRetrace;
 using glretrace::RenderId;
 using glretrace::RenderOptions;
@@ -75,6 +77,9 @@ class FileTransfer : public IFrameRetrace {
                       ExperimentId experimentCount,
                       OnFrameRetrace *callback) const {}
   virtual void retraceAllMetrics(const RenderSelection &selection,
+                                 ExperimentId experimentCount,
+                                 OnFrameRetrace *callback) const {}
+  virtual void retraceAllTextures(const RenderSelection &selection,
                                  ExperimentId experimentCount,
                                  OnFrameRetrace *callback) const {}
   void replaceShaders(RenderId renderId,
@@ -121,6 +126,9 @@ class FileTransferCB : public OnFrameRetrace {
                        const std::string &errorString) {}
   void onApi(RenderId renderId,
              const std::vector<std::string> &api_calls) {}
+  void onTexturesList(const std::vector<TexturesId> &ids) {}
+  void onTextures(RenderId renderId,
+                     const std::vector<TextureData> &textures) {}
   void onError(const std::string &message) {}
   bool m_needUpload;
 };

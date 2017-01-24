@@ -353,6 +353,15 @@ ApplicationWindow {
                     metricsModel: frameRetrace.metricTab
                 }
             }
+            Tab {
+                title: "Textures"
+                id: texturesTab
+                anchors.fill: parent
+                clip: true
+                TexturesTabControl {
+                    texturesModel: frameRetrace.texturesTab
+                }
+            }
         }
     }
 }

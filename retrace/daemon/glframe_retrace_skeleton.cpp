@@ -392,6 +392,19 @@ FrameRetraceSkeleton::onMetrics(const MetricSeries &metricData,
 }
 
 void
+FrameRetraceSkeleton::onTexturesList(const std::vector<TexturesId> &ids) {
+  RetraceResponse proto_response;
+  // Add relevant code here
+  writeResponse(m_socket, proto_response, &m_buf);
+}
+
+void
+FrameRetraceSkeleton::onTextures(RenderId renderId,
+                     const std::vector<TextureData> &textures) {
+  // Add relevant code here
+}
+
+void
 FrameRetraceSkeleton::onApi(RenderId renderId,
                             const std::vector<std::string> &api_calls) {
   RetraceResponse proto_response;

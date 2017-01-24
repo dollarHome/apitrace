@@ -339,6 +339,20 @@ FrameRetraceModel::onMetrics(const MetricSeries &metricData,
 }
 
 void
+FrameRetraceModel::onTexturesList(const std::vector<TexturesId> &ids) {
+  ScopedLock s(m_protect);
+  txts_ids = ids;
+  m_textures_table.init(&m_retrace, m_selection, ids,
+                       m_state->getRenderCount());
+  emit updateMetricList();
+}
+
+void
+FrameRetraceModel::onTextures(RenderId renderId,
+                     const std::vector<TextureData> &textures) {
+}
+
+void
 FrameRetraceModel::onUpdateMetricList() {
   ScopedLock s(m_protect);
   for (auto i : m_metrics_model)

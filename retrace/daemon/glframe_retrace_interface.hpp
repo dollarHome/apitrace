@@ -61,6 +61,7 @@ enum IdPrefix {
   METRIC_ID_PREFIX = 0x4  << 28,
   SELECTION_ID_PREFIX = 0x5  << 28,
   EXPERIMENT_ID_PREFIX = 0x6  << 28,
+  TEXTURES_ID_PREFIX = 0x7  << 28,
   ID_PREFIX_MASK = 0xf << 28
 };
 
@@ -154,6 +155,31 @@ class ExperimentId {
   uint32_t value;
 };
 
+// Decorates Textures numbers with a mask, so they can never be confused
+// with any other Id
+class TexturesId {
+ public:
+  explicit TexturesId(uint64_t texturesNumber) {
+    assert(((texturesNumber & ID_PREFIX_MASK) == 0) ||
+           ((texturesNumber & ID_PREFIX_MASK) == TEXTURES_ID_PREFIX));
+    value = TEXTURES_ID_PREFIX | texturesNumber;
+  }
+  TexturesId(uint32_t group, uint16_t counter) {
+    value = TEXTURES_ID_PREFIX | (group << 16) | counter;
+  }
+  TexturesId() : value(0) {}
+
+  uint64_t operator()() const { return value; }
+  uint32_t group() const { return value >> 16; }
+  uint32_t counter() const { return (value & 0x0FFFF); }
+  bool operator<(const TexturesId &o) const { return value < o.value; }
+  bool operator==(const TexturesId &o) const { return value == o.value; }
+ private:
+  // low 16 bits are the counter number
+  // middle 32 bits are the group
+  // high 4 bits are the mask
+  uint64_t value;
+};
 
 struct MetricSeries {
   MetricId metric;
@@ -165,6 +191,17 @@ struct RenderSequence {
   RenderSequence() {}
   RenderId begin;
   RenderId end;
+};
+
+struct TextureData {
+  uint32_t texture_id;
+  uint32_t texture_unit;
+  uint32_t texture_width;
+  uint32_t texture_height;
+  uint32_t texture_data_type;
+  uint32_t texture_data_format;
+  uint32_t mipmap;
+  std::string texture;
 };
 
 typedef std::vector<RenderSequence> RenderSeries;
@@ -225,6 +262,9 @@ class OnFrameRetrace {
   virtual void onApi(RenderId renderId,
                      const std::vector<std::string> &api_calls) = 0;
   virtual void onError(const std::string &message) = 0;
+  virtual void onTexturesList(const std::vector<TexturesId> &ids) = 0;
+  virtual void onTextures(RenderId renderId,
+                     const std::vector<TextureData> &textures) = 0;
 };
 
 class IFrameRetrace {
@@ -264,6 +304,9 @@ class IFrameRetrace {
                               OnFrameRetrace *callback) = 0;
   virtual void retraceApi(RenderId renderId,
                           OnFrameRetrace *callback) = 0;
+  virtual void retraceAllTextures(const RenderSelection &selection,
+                                 ExperimentId experimentCount,
+                                 OnFrameRetrace *callback) const = 0;
 };
 
 class FrameState {

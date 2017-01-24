@@ -87,6 +87,9 @@ class FrameRetrace : public IFrameRetrace {
   // void revertModifications();
   void retraceApi(RenderId renderId,
                   OnFrameRetrace *callback);
+  void retraceAllTextures(const RenderSelection &selection,
+                         ExperimentId experimentCount,
+                         OnFrameRetrace *callback) const;
 
  private:
   // these are global

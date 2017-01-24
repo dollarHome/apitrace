@@ -39,7 +39,9 @@ using glretrace::FrameRetrace;
 using glretrace::GlFunctions;
 using glretrace::Logger;
 using glretrace::MetricId;
+using glretrace::TexturesId;
 using glretrace::MetricSeries;
+using glretrace::TextureData;
 using glretrace::OnFrameRetrace;
 using glretrace::RenderId;
 using glretrace::RenderSelection;
@@ -82,6 +84,9 @@ class NullCallback : public OnFrameRetrace {
   void onMetrics(const MetricSeries &metricData,
                  ExperimentId experimentCount,
                  SelectionId selectionCount) {}
+  void onTexturesList(const std::vector<TexturesId> &ids) {}
+  void onTextures(RenderId renderId,
+                     const std::vector<TextureData> &textures) {}
   void onApi(RenderId renderId,
              const std::vector<std::string> &api_calls) {
     calls = api_calls;

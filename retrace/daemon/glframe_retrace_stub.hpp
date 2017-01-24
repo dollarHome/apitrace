@@ -77,6 +77,9 @@ class FrameRetraceStub : public IFrameRetrace {
                               OnFrameRetrace *callback);
   virtual void retraceApi(RenderId renderId,
                           OnFrameRetrace *callback);
+  virtual void retraceAllTextures(const RenderSelection &selection,
+                                 ExperimentId experimentCount,
+                                 OnFrameRetrace *callback) const;
 
  private:
   mutable std::mutex m_mutex;

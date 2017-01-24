@@ -57,6 +57,7 @@ using glretrace::Semaphore;
 using glretrace::ShaderAssembly;
 using glretrace::Socket;
 using glretrace::Thread;
+using glretrace::TextureData;
 using google::protobuf::io::ArrayInputStream;
 using google::protobuf::io::ArrayOutputStream;
 using google::protobuf::io::CodedInputStream;
@@ -539,6 +540,41 @@ class FlushRequest : public IRetraceRequest {
   Semaphore *m_sem;
 };
 
+class TexturesRequest : public IRetraceRequest {
+ public:
+  TexturesRequest(RenderId renderId,
+             OnFrameRetrace *cb)
+      : m_callback(cb) {
+    auto textureRequest = m_proto_msg.mutable_textures();
+    textureRequest->set_render_id(renderId());
+    m_proto_msg.set_requesttype(ApiTrace::TEXTURES_REQUEST);
+  }
+  virtual void retrace(RetraceSocket *s) {
+    RetraceResponse response;
+    s->retrace(m_proto_msg, &response);
+    assert(response.has_textures());
+    auto textures_response = response.textures();
+
+    const RenderId rid(textures_response.render_id());
+    std::vector<TextureData> textures;
+    auto &textures_vec = textures_response.textures();
+    textures.reserve(textures_vec.size());
+      std::printf("Inside Response, size = %d\n", textures_vec.size());
+    for (int i = 0; i < textures_vec.size(); ++i) {
+      auto a = textures_vec[i];
+      TextureData tex;
+      std::printf("Inside Response, size = %d\n", textures_vec.size());
+      // tex.texture_id = a.texture_id;
+      textures.push_back(tex);
+    }
+    m_callback->onTextures(rid, textures);
+  }
+
+ private:
+  RetraceRequest m_proto_msg;
+  OnFrameRetrace *m_callback;
+};
+
 class BufferQueue {
  public:
   void push(IRetraceRequest *r) {
@@ -699,4 +735,10 @@ FrameRetraceStub::Flush() {
   Semaphore sem;
   m_thread->push(new FlushRequest(&sem));
   sem.wait();
+}
+
+void
+FrameRetraceStub::retraceAllTextures(const RenderSelection &selection,
+                                    ExperimentId experimentCount,
+                                    OnFrameRetrace *callback) const {
 }
