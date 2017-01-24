@@ -27,6 +27,7 @@ set (UI_SRC
   glframe_retrace_model.hpp
   glframe_retrace_model.cpp
   glframe_shader_model.hpp
+  glframe_shader_model.cpp
   glframe_textures_model.hpp
   glframe_textures_model.cpp
   )

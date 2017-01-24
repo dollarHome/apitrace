@@ -105,14 +105,16 @@ class QTexturesModel : public QObject, OnFrameRetrace,
                      bool finished,
                      uint32_t percent_complete) { assert(false); }
   void onShaderAssembly(RenderId renderId,
+                        SelectionId selectionCount,
                         const ShaderAssembly &vertex,
                         const ShaderAssembly &fragment,
                         const ShaderAssembly &tess_control,
                         const ShaderAssembly &tess_eval,
                         const ShaderAssembly &geom,
                         const ShaderAssembly &comp) { assert(false); }
-  void onRenderTarget(RenderId renderId, RenderTargetType type,
-                      const uvec & pngImageData) { assert(false); }
+  void onRenderTarget(SelectionId selectionCount,
+                      ExperimentId experimentCount,
+                      const uvec &pngImageData) { assert(false); }
   void onMetricList(const std::vector<MetricId> &ids,
                     const std::vector<std::string> &names,
                     const std::vector<std::string> &desc) { assert(false); }
