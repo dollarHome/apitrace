@@ -5,7 +5,7 @@ import QtQuick.Dialogs 1.1
 import ApiTrace 1.0
 
 Item {
-    property QTexturesModel texturesModel
+    property QRenderTexturesModel texturesModel
     RowLayout {
         anchors.fill: parent
         TableView {

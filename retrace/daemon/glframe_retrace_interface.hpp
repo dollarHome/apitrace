@@ -201,7 +201,7 @@ struct TextureData {
   uint32_t texture_data_type;
   uint32_t texture_data_format;
   uint32_t mipmap;
-  std::string texture;
+  std::vector<unsigned char> texture;
 };
 
 typedef std::vector<RenderSequence> RenderSeries;
@@ -264,7 +264,8 @@ class OnFrameRetrace {
   virtual void onError(const std::string &message) = 0;
   virtual void onTexturesList(const std::vector<TexturesId> &ids) = 0;
   virtual void onTextures(RenderId renderId,
-                     const std::vector<TextureData> &textures) = 0;
+                          SelectionId selectionCount,
+                          const TextureData &texture) = 0;
 };
 
 class IFrameRetrace {

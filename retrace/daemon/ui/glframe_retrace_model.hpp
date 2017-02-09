@@ -116,7 +116,8 @@ class FrameRetraceModel : public QObject,
   Q_PROPERTY(QString argvZero READ argvZero WRITE setArgvZero
              NOTIFY onArgvZero)
   Q_PROPERTY(glretrace::QMetricsModel* metricTab READ metricTab CONSTANT)
-  Q_PROPERTY(glretrace::QTexturesModel* texturesTab READ texturesTab CONSTANT)
+  Q_PROPERTY(glretrace::QRenderTexturesModel* texturesTab
+             READ texturesTab CONSTANT)
 
  public:
   FrameRetraceModel();
@@ -160,7 +161,8 @@ class FrameRetraceModel : public QObject,
                  SelectionId selectionCount);
   void onTexturesList(const std::vector<TexturesId> &ids);
   void onTextures(RenderId renderId,
-                     const std::vector<TextureData> &textures);
+                  SelectionId selectionCount,
+                  const TextureData &textures);
   void onApi(RenderId renderId, const std::vector<std::string> &api_calls);
   void onError(const std::string &message);
   void onShadersChanged();
@@ -173,7 +175,7 @@ class FrameRetraceModel : public QObject,
   QString argvZero() { return main_exe; }
   void setArgvZero(const QString &a) { main_exe = a; emit onArgvZero(); }
   QMetricsModel *metricTab() { return &m_metrics_table; }
-  QTexturesModel *texturesTab() { return &m_textures_table; }
+  QRenderTexturesModel *texturesTab() { return &m_textures; }
 
   bool clearBeforeRender() const;
   void setClearBeforeRender(bool v);
@@ -203,11 +205,12 @@ class FrameRetraceModel : public QObject,
   void retrace_rendertarget();
   void retrace_shader_assemblies();
   void retrace_api();
+  void retrace_textures();
 
   mutable std::mutex m_protect;
   FrameRetraceStub m_retrace;
   QMetricsModel m_metrics_table;
-  QTexturesModel m_textures_table;
+  QRenderTexturesModel m_textures;
   FrameState *m_state;
   QSelection *m_selection;
   SelectionId m_selection_count;

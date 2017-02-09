@@ -251,6 +251,7 @@ class RetraceShaderAssemblyRequest : public IRetraceRequest {
     RetraceResponse response;
     // sends single request, read multiple responses
     s->request(m_proto_msg);
+    printf("Inside RetraceShaderAssemblyRequest::retrace\n");
     while (true) {
       response.Clear();
       s->response(&response);
@@ -540,37 +541,74 @@ class FlushRequest : public IRetraceRequest {
   Semaphore *m_sem;
 };
 
-class TexturesRequest : public IRetraceRequest {
+void set_texture_data(const ApiTrace::TextureData &response,
+                      TextureData *textureData) {
+  textureData->texture_id = response.texture_id();
+  textureData->texture_unit = response.texture_unit();
+  textureData->texture_width = response.texture_width();
+  textureData->texture_height = response.texture_height();
+  textureData->texture_data_type = response.texture_data_type();
+  textureData->texture_data_format = response.texture_data_format();
+  textureData->mipmap = response.mipmap();
+  const char *textureImage = response.texture().c_str();
+  textureData->texture.assign(textureImage,
+                              textureImage + strlen(textureImage));
+}
+
+class RetraceTexturesRequest : public IRetraceRequest {
  public:
-  TexturesRequest(RenderId renderId,
-             OnFrameRetrace *cb)
-      : m_callback(cb) {
+  RetraceTexturesRequest(SelectionId *current_selection,
+                         std::mutex *protect,
+                         const RenderSelection &selection,
+                         OnFrameRetrace *cb)
+      : m_sel_count(current_selection),
+        m_protect(protect),
+        m_callback(cb) {
     auto textureRequest = m_proto_msg.mutable_textures();
-    textureRequest->set_render_id(renderId());
+    makeRenderSelection(selection, textureRequest->mutable_render_selection());
+    // textureRequest->set_render_id(renderId());
     m_proto_msg.set_requesttype(ApiTrace::TEXTURES_REQUEST);
   }
   virtual void retrace(RetraceSocket *s) {
-    RetraceResponse response;
-    s->retrace(m_proto_msg, &response);
-    assert(response.has_textures());
-    auto textures_response = response.textures();
-
-    const RenderId rid(textures_response.render_id());
-    std::vector<TextureData> textures;
-    auto &textures_vec = textures_response.textures();
-    textures.reserve(textures_vec.size());
-      std::printf("Inside Response, size = %d\n", textures_vec.size());
-    for (int i = 0; i < textures_vec.size(); ++i) {
-      auto a = textures_vec[i];
-      TextureData tex;
-      std::printf("Inside Response, size = %d\n", textures_vec.size());
-      // tex.texture_id = a.texture_id;
-      textures.push_back(tex);
+    {
+      std::lock_guard<std::mutex> l(*m_protect);
+      const auto &s = m_proto_msg.textures().render_selection();
+      if (*m_sel_count != SelectionId(s.selection_count()))
+         return;
     }
-    m_callback->onTextures(rid, textures);
+    RetraceResponse response;
+    s->request(m_proto_msg);
+    printf("Inside RetraceTexturesRequest::retrace 1\n");
+    while (true) {
+      response.Clear();
+      s->response(&response);
+      assert(response.has_textures());
+      auto texture = response.textures();
+      if (texture.render_id() == -1)
+         break;
+
+      const auto &selection = m_proto_msg.textures().render_selection();
+      {
+        std::lock_guard<std::mutex> l(*m_protect);
+        if (*m_sel_count != SelectionId(selection.selection_count()))
+          continue;
+      }
+
+      /* Construct the response and assign to callback */
+      const RenderId rid(texture.render_id());
+      TextureData textureData;
+      // Fix this to work for multiple textures
+      set_texture_data(texture.textures(), &textureData);
+      printf("Inside RetraceTexturesRequest::retrace 2\n");
+      m_callback->onTextures(rid,
+                           SelectionId(selection.selection_count()),
+                           textureData);
+    }
   }
 
  private:
+  SelectionId *m_sel_count;
+  std::mutex *m_protect;
   RetraceRequest m_proto_msg;
   OnFrameRetrace *m_callback;
 };
@@ -741,4 +779,12 @@ void
 FrameRetraceStub::retraceAllTextures(const RenderSelection &selection,
                                     ExperimentId experimentCount,
                                     OnFrameRetrace *callback) const {
+  {
+    std::lock_guard<std::mutex> l(m_mutex);
+    m_current_render_selection = selection.id;
+  }
+  m_thread->push(new RetraceTexturesRequest(&m_current_render_selection,
+                                            &m_mutex,
+                                            selection,
+                                            callback));
 }

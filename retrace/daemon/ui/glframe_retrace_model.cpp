@@ -256,6 +256,17 @@ FrameRetraceModel::retrace_shader_assemblies() {
   m_retrace.retraceShaderAssembly(rs, this);
 }
 
+void
+FrameRetraceModel::retrace_textures() {
+  if (m_cached_selection.empty())
+    return;
+
+  RenderSelection rs;
+  glretrace::renderSelectionFromList(m_selection_count,
+                                     m_cached_selection,
+                                     &rs);
+  m_retrace.retraceAllTextures(rs, ExperimentId(0), this);
+}
 
 QString
 FrameRetraceModel::renderTargetImage() const {
@@ -342,14 +353,17 @@ void
 FrameRetraceModel::onTexturesList(const std::vector<TexturesId> &ids) {
   ScopedLock s(m_protect);
   txts_ids = ids;
-  m_textures_table.init(&m_retrace, m_selection, ids,
-                       m_state->getRenderCount());
-  emit updateMetricList();
 }
 
 void
 FrameRetraceModel::onTextures(RenderId renderId,
-                     const std::vector<TextureData> &textures) {
+                              SelectionId selectionCount,
+                              const TextureData &textures) {
+  ScopedLock s(m_protect);
+  if (m_selection_count != selectionCount)
+    // retrace is out of date
+    return;
+  m_textures.onTextures(renderId, selectionCount, textures);
 }
 
 void
@@ -424,6 +438,7 @@ FrameRetraceModel::onSelect(QList<int> selection) {
   retrace_rendertarget();
   retrace_shader_assemblies();
   retrace_api();
+  retrace_textures();
 }
 
 bool

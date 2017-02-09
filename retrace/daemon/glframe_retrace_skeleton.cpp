@@ -53,6 +53,7 @@ using glretrace::RenderOptions;
 using glretrace::RenderTargetType;
 using glretrace::SelectionId;
 using glretrace::ShaderAssembly;
+using glretrace::TextureData;
 using glretrace::Socket;
 using glretrace::application_cache_directory;
 using google::protobuf::io::ArrayInputStream;
@@ -127,6 +128,20 @@ void set_shader_assembly(const ShaderAssembly &assembly,
   response->set_code_sinking(assembly.codeSinking);
 }
 
+void set_texture_data(const TextureData &textureData,
+                         ApiTrace::TextureData *response) {
+  response->set_texture_id(textureData.texture_id);
+  response->set_texture_unit(textureData.texture_unit);
+  response->set_texture_width(textureData.texture_width);
+  response->set_texture_height(textureData.texture_height);
+  response->set_texture_data_type(textureData.texture_data_type);
+  response->set_texture_data_format(textureData.texture_data_format);
+  response->set_mipmap(textureData.mipmap);
+  const std::vector<unsigned char> textureImage = textureData.texture;
+  std::string texImage(textureImage.begin(), textureImage.end());
+  response->set_texture(texImage);
+}
+
 void
 FrameRetraceSkeleton::Run() {
   while (true) {
@@ -150,6 +165,7 @@ FrameRetraceSkeleton::Run() {
     CodedInputStream::Limit msg_limit = coded_in.PushLimit(buf_size);
     request.ParseFromCodedStream(&coded_in);
     coded_in.PopLimit(msg_limit);
+    printf("Request type received = %d\n", request.requesttype());
     switch (request.requesttype()) {
       case ApiTrace::OPEN_FILE_REQUEST:
         {
@@ -262,6 +278,7 @@ FrameRetraceSkeleton::Run() {
           set_shader_assembly(s, shader_resp->mutable_tess_eval());
           set_shader_assembly(s, shader_resp->mutable_geom());
           set_shader_assembly(s, shader_resp->mutable_comp());
+          printf("Inside FrameRetraceSkeleton::SHADER_ASSEMBLY_REQUEST::Run\n");
           writeResponse(m_socket, proto_response, &m_buf);
           break;
         }
@@ -286,6 +303,27 @@ FrameRetraceSkeleton::Run() {
           auto api = request.api();
           m_frame->retraceApi(RenderId(api.render_id()),
                               this);
+          break;
+        }
+
+      case ApiTrace::TEXTURES_REQUEST:
+        {
+          assert(request.has_textures());
+          auto texture = request.textures();
+          RenderSelection selection;
+          makeRenderSelection(texture.render_selection(), &selection);
+          m_frame->retraceAllTextures(selection,
+                                      ExperimentId(0),
+                                      this);
+          // send empty message to signal the last response
+          RetraceResponse proto_response;
+          auto texture_resp = proto_response.mutable_textures();
+          texture_resp->set_render_id(-1);
+          texture_resp->set_selection_id(-1);
+          TextureData td;
+          set_texture_data(td, texture_resp->mutable_textures());
+          printf("Inside FrameRetraceSkeleton::TEXTURES_REQUEST::Run\n");
+          writeResponse(m_socket, proto_response, &m_buf);
           break;
         }
     }
@@ -400,8 +438,15 @@ FrameRetraceSkeleton::onTexturesList(const std::vector<TexturesId> &ids) {
 
 void
 FrameRetraceSkeleton::onTextures(RenderId renderId,
-                     const std::vector<TextureData> &textures) {
+                                 SelectionId selectionCount,
+                     const TextureData &textures) {
   // Add relevant code here
+  RetraceResponse proto_response;
+  auto texture_resp = proto_response.mutable_textures();
+  texture_resp->set_render_id(renderId());
+  texture_resp->set_selection_id(selectionCount());
+  set_texture_data(textures, texture_resp->mutable_textures());
+  writeResponse(m_socket, proto_response, &m_buf);
 }
 
 void

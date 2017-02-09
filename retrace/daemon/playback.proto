@@ -157,16 +157,19 @@ message TextureData {
   required uint32 texture_data_type = 5;
   required uint32 texture_data_format = 6;
   required uint32 mipmap = 7;
-  required string texture = 9;
+  required bytes texture = 9;
 }
 
 message TexturesRequest {
-  required uint32 render_id = 1;
+  required RenderSelection render_selection = 1;
+  required uint32 render_id = 2;
 }
 
 message TexturesResponse {
   required uint32 render_id = 1;
-  repeated TextureData textures = 2;
+  required uint32 selection_id = 2;
+  // Fix this to work for multiple textures
+  required TextureData textures = 3;
 }
 
 message RetraceRequest {

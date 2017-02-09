@@ -34,6 +34,7 @@
 #include <QString>
 
 #include <map>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -43,22 +44,36 @@
 namespace glretrace {
 
 class QSelection;
-class QTexturesValue : public QObject,
-                NoCopy, NoAssign, NoMove {
+class QTextures : public QObject,
+                  NoCopy, NoAssign, NoMove {
   Q_OBJECT
-  Q_PROPERTY(uint32_t textureId READ textureId NOTIFY onTextureId)
-  Q_PROPERTY(uint32_t textureUnit READ textureUnit NOTIFY onTextureUnit)
-  Q_PROPERTY(uint32_t textureWidth READ textureWidth NOTIFY onTextureWidth)
-  Q_PROPERTY(uint32_t textureHeight READ textureHeight NOTIFY onTextureHeight)
-  Q_PROPERTY(uint32_t textureDataFormat READ textureDataFormat NOTIFY
-onTextureDataFormat)
-  Q_PROPERTY(uint32_t textureDataType READ textureDataType NOTIFY
-onTextureDataType)
-  Q_PROPERTY(uint32_t mipMap READ mipMap NOTIFY onMipMap)
 
  public:
-  QTexturesValue();
-  explicit QTexturesValue(QObject *p);
+  QTextures() {}
+  ~QTextures() {}
+  Q_PROPERTY(uint32_t textureId READ textureId)
+  Q_PROPERTY(uint32_t textureUnit READ textureUnit)
+  Q_PROPERTY(uint32_t textureWidth READ textureWidth)
+  Q_PROPERTY(uint32_t textureHeight READ textureHeight)
+  Q_PROPERTY(uint32_t textureDataFormat READ textureDataFormat)
+  Q_PROPERTY(uint32_t textureDataType READ textureDataType)
+  Q_PROPERTY(uint32_t mipMap READ mipMap NOTIFY mipMapChanged)
+  Q_PROPERTY(std::vector<unsigned char> textureImage READ textureImage)
+
+  void onTextures(const TextureData &texture) {
+    m_textureId = texture.texture_id;
+    m_textureUnit = texture.texture_unit;
+    m_textureWidth = texture.texture_width;
+    m_textureHeight = texture.texture_height;
+    m_textureDataFormat = texture.texture_data_type;
+    m_textureDataType = texture.texture_data_format;
+    m_mipMap = texture.mipmap;
+    printf("Inside QTextures::onTextures()\n");
+    if (texture.texture.size() > 0)
+      m_textureImage.assign(texture.texture.front(), texture.texture.back());
+  }
+
+  // explicit QTextures(QObject *p);
   void setTextureId(const uint32_t textureId);
   void setTextureUnit(const uint32_t textureUnit);
   void setTextureWidth(const uint32_t textureWidth);
@@ -66,6 +81,7 @@ onTextureDataType)
   void setTextureDataFomat(const uint32_t textureDataFormat);
   void setTextureDataType(const uint32_t textureDataType);
   void setMipMap(const uint32_t mipMap);
+  void setTextureImage(std::vector<unsigned char> textureImage);
 
   uint32_t textureId() const { return m_textureId; }
   uint32_t textureUnit() const { return m_textureUnit; }
@@ -74,80 +90,71 @@ onTextureDataType)
   uint32_t textureDataFormat() const { return m_textureDataFormat; }
   uint32_t textureDataType() const { return m_textureDataType; }
   uint32_t mipMap() const { return m_mipMap; }
+  std::vector<unsigned char>  textureImage() const { return m_textureImage; }
 
  signals:
-  void onTextureId();
-  void onTextureUnit();
-  void onTextureWidth();
-  void onTextureHeight();
-  void onTextureDataFormat();
-  void onTextureDataType();
-  void onMipMap();
+  void mipMapChanged();
 
  private:
   uint32_t m_textureId, m_textureUnit, m_textureWidth, m_textureHeight;
   uint32_t m_textureDataFormat, m_textureDataType, m_mipMap;
+  std::vector<unsigned char> m_textureImage;
 };
 
-class QTexturesModel : public QObject, OnFrameRetrace,
-                      NoCopy, NoAssign, NoMove {
+//  Wrapper to enclose all the textures for a render
+class QRenderTextures : public QObject,
+                        NoCopy, NoAssign, NoMove {
   Q_OBJECT
-  Q_PROPERTY(QQmlListProperty<glretrace::QTexturesValue> textures
-             READ textures NOTIFY onTexturesChanged)
+
+  Q_PROPERTY(QString renders READ renders NOTIFY onRenders)
  public:
-  QTexturesModel();
-  ~QTexturesModel();
-  void init(IFrameRetrace *r,
-            QSelection *s,
-            const std::vector<TexturesId> &ids,
-            int render_count);
-  void onFileOpening(bool needUpload,
-                     bool finished,
-                     uint32_t percent_complete) { assert(false); }
-  void onShaderAssembly(RenderId renderId,
-                        SelectionId selectionCount,
-                        const ShaderAssembly &vertex,
-                        const ShaderAssembly &fragment,
-                        const ShaderAssembly &tess_control,
-                        const ShaderAssembly &tess_eval,
-                        const ShaderAssembly &geom,
-                        const ShaderAssembly &comp) { assert(false); }
-  void onRenderTarget(SelectionId selectionCount,
-                      ExperimentId experimentCount,
-                      const uvec &pngImageData) { assert(false); }
-  void onMetricList(const std::vector<MetricId> &ids,
-                    const std::vector<std::string> &names,
-                    const std::vector<std::string> &desc) { assert(false); }
-  void onMetrics(const MetricSeries &metricData,
-                 ExperimentId experimentCount,
-                 SelectionId selectionCount) { }
-  void onTexturesList(const std::vector<TexturesId> &ids) { assert(false); }
-  void onTextures(RenderId renderId,
-                     const std::vector<TextureData> &textures);
-  void onShaderCompile(RenderId renderId,
-                       ExperimentId experimentCount,
-                       bool status,
-                       const std::string &errorString) { assert(false); }
-  void onApi(RenderId renderId,
-             const std::vector<std::string> &api_calls) { assert(false); }
-  void onError(const std::string &message) { assert(false); }
+  QRenderTextures() : m_currentSelectionId(0) {}
+  ~QRenderTextures() {}
 
-  QQmlListProperty<QTexturesValue> textures();
-  void refresh();
-
- public slots:
-  void onSelect(QList<int> selection);
-
+  void onTextures(const TextureData &texture);
+  QString renders() { return m_renders; }
+  QTextures *renderTextures() { return &m_renderTextures; }
  signals:
-  void onTexturesChanged();
-
+  void onRenders();
  private:
-  IFrameRetrace *m_retrace;
-  int m_render_count;
-  SelectionId m_current_selection_count;
-  RenderSelection m_render_selection;
-  std::map<TexturesId, QTexturesValue*> m_textures;
-  QList<QTexturesValue *> m_textures_list;
+  QTextures m_renderTextures;
+  SelectionId m_currentSelectionId;
+  QString m_renders;
+};
+
+class FrameRetraceModel;
+class QRenderTexturesModel : public QObject,
+                             NoCopy, NoAssign, NoMove {
+  Q_OBJECT
+  Q_PROPERTY(glretrace::QRenderTextures* textures READ textures
+             CONSTANT)
+  Q_PROPERTY(QStringList renders
+             READ renders NOTIFY onRendersChanged)
+
+ public:
+  QRenderTexturesModel() : m_retracer(NULL), m_retraceModel(NULL) {}
+  ~QRenderTexturesModel() {}
+  void setRetrace(IFrameRetrace *retracer,
+                  FrameRetraceModel *model);
+  QRenderTextures *textures() { return &m_textures; }
+  void onTextures(RenderId renderId,
+                  SelectionId selectionCount,
+                  const TextureData &texture);
+  QStringList renders();
+  Q_INVOKABLE void setIndex(int index);
+ signals:
+  void onRendersChanged();
+ private:
+  void setIndexDirect(int index);
+
+  mutable std::mutex m_protect;
+  QRenderTextures m_textures;
+  QStringList m_render_strings;
+  std::vector<std::vector<RenderId>> m_renders;
+  std::vector< std::vector<TextureData>> m_textureData;
+  SelectionId m_current_selection;
+  IFrameRetrace *m_retracer;
+  FrameRetraceModel *m_retraceModel;
 };
 
 }  // namespace glretrace

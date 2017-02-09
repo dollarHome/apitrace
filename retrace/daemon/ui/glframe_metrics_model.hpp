@@ -115,7 +115,8 @@ class QMetricsModel : public QObject, OnFrameRetrace,
                  SelectionId selectionCount);
   void onTexturesList(const std::vector<TexturesId> &ids) { assert(false); }
   void onTextures(RenderId renderId,
-                     const std::vector<TextureData> &textures) {}
+                  SelectionId selectionCount,
+                  const TextureData &textures) { assert(false); }
   void onShaderCompile(RenderId renderId,
                        ExperimentId experimentCount,
                        bool status,

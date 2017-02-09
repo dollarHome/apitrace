@@ -39,9 +39,6 @@
 
 using glretrace::ExperimentId;
 using glretrace::FrameRetraceSkeleton;
-using glretrace::FrameRetraceSkeleton;
-using glretrace::FrameRetraceSkeleton;
-using glretrace::FrameRetraceSkeleton;
 using glretrace::FrameRetraceStub;
 using glretrace::IFrameRetrace;
 using glretrace::MetricId;
@@ -128,7 +125,8 @@ class FileTransferCB : public OnFrameRetrace {
              const std::vector<std::string> &api_calls) {}
   void onTexturesList(const std::vector<TexturesId> &ids) {}
   void onTextures(RenderId renderId,
-                     const std::vector<TextureData> &textures) {}
+                  SelectionId selectionCount,
+                  const TextureData &textures) {}
   void onError(const std::string &message) {}
   bool m_needUpload;
 };

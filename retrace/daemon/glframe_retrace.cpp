@@ -26,6 +26,9 @@
  **************************************************************************/
 
 #include "glframe_retrace.hpp"
+#define GL_GLEXT_PROTOTYPES
+#include <GL/gl.h>
+#include <GL/glext.h>
 
 #include <GLES2/gl2.h>
 #include <fcntl.h>
@@ -266,6 +269,8 @@ FrameRetrace::retraceShaderAssembly(const RenderSelection &selection,
       ++current_render_id;
     }
     while (current_render_id < sequence.end) {
+      printf("In shaders, current_render_id = %d\n",
+current_render_id());
       m_renders[current_render_id.index()]->retrace(&tmp_tracker);
       callback->onShaderAssembly(current_render_id,
                                  selection.id,
@@ -440,4 +445,73 @@ void
 FrameRetrace::retraceAllTextures(const RenderSelection &selection,
                                 ExperimentId experimentCount,
                                 OnFrameRetrace *callback) const {
+  // reset to beginning of frame
+  parser.setBookmark(frame_start.start);
+  StateTrack tmp_tracker = m_tracker;
+
+  printf("Inside the FrameRetrace::retraceAllTextures()\n");
+  RenderId current_render_id(0);
+  for (const auto &sequence : selection.series) {
+    // play up to the end of the render
+    while (current_render_id < sequence.begin) {
+      m_renders[current_render_id.index()]->retrace(&tmp_tracker);
+      ++current_render_id;
+    }
+    while (current_render_id < sequence.end) {
+      m_renders[current_render_id.index()]->retrace(&tmp_tracker);
+
+      printf("In textures, current_render_id = %d\n",
+current_render_id.index());
+      unsigned char *pixels;
+      GLint imgHt = 0, imgWd = 0, mipmap = 0;
+      int imgSize = 0;
+      GLint texId = 0;
+      GLenum target = GL_TEXTURE_2D;
+      // A minimum of 48 texture units needs to be supported by the HW
+      for (GLuint texUnit = 0; texUnit < 48; texUnit++) {
+//        GLuint tmpTexture;
+//        glGenTextures(1, &tmpTexture);
+        glActiveTexture(GL_TEXTURE0 + texUnit);
+//        glBindTexture(GL_TEXTURE_2D, tmpTexture);
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &texId);
+        //  glBindTexture(GL_TEXTURE_2D, texId);
+        //  glEnable(target);
+        glGetTexLevelParameteriv(target, 0, GL_TEXTURE_HEIGHT, &imgHt);
+        glGetTexLevelParameteriv(target, 0, GL_TEXTURE_WIDTH, &imgWd);
+        glGetTexParameteriv(target, GL_TEXTURE_MAX_LEVEL, &mipmap);
+        imgSize = 4 * imgHt * imgWd;
+        pixels = (unsigned char*)calloc((sizeof(unsigned char) * imgSize),
+                                         sizeof(unsigned char));
+        // get the texture image
+        glGetTexImage(target, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        if (glGetError() != GL_NO_ERROR) {
+          printf("Texture Id obtained = %d\n", texId);
+          printf("Got for texture %d, ht = %d, wd = %d, imgSize = %d\n",
+texUnit, imgHt, imgWd, imgSize);
+          TextureData tex;
+          tex.texture_unit = texUnit;
+          tex.texture_width = imgWd;
+          tex.texture_height = imgHt;
+          // Adjust this correctly
+          tex.texture_data_type = 0;
+          // Adjust this to be internal format
+          tex.texture_data_format = 0;
+          tex.mipmap = mipmap;
+          tex.texture.assign(pixels, pixels + imgSize);
+
+          //  texData.push_back(tex);
+          callback->onTextures(current_render_id, selection.id, tex);
+          //  glDisable(GL_TEXTURE_2D);
+        }
+        free(pixels);
+      }
+
+      ++current_render_id;
+    }
+  }
+  // play to the rest of the frame
+  while (current_render_id.index() < m_renders.size()) {
+    m_renders[current_render_id.index()]->retrace(&tmp_tracker);
+    ++current_render_id;
+  }
 }

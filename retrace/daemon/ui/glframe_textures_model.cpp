@@ -27,73 +27,139 @@
 
 #include "glframe_textures_model.hpp"
 
+#include <sstream>
 #include <string>
 #include <vector>
 
-#include "glframe_qselection.hpp"
+#include "glframe_logger.hpp"
+#include "glframe_os.hpp"
+#include "glframe_retrace_model.hpp"
 
-using glretrace::ExperimentId;
+using glretrace::DEBUG;
 using glretrace::IFrameRetrace;
-using glretrace::TexturesId;
+using glretrace::FrameRetraceModel;
+using glretrace::RenderId;
 using glretrace::TextureData;
-using glretrace::QTexturesValue;
-using glretrace::QTexturesModel;
-using glretrace::QSelection;
+using glretrace::QTextures;
+using glretrace::QRenderTextures;
+using glretrace::QRenderTexturesModel;
+using glretrace::ScopedLock;
 using glretrace::SelectionId;
-
-QTexturesValue::QTexturesValue() : m_textureId(0), m_textureUnit(0), \
-                                   m_textureWidth(0), m_textureHeight(0), \
-                                   m_textureDataFormat(0), \
-                                   m_textureDataType(0), m_mipMap(0) {
-  assert(false);
-}
-
-QTexturesValue::QTexturesValue(QObject *p) {
-  moveToThread(p->thread());
-}
+using glretrace::ShaderAssembly;
 
 void
-QTexturesValue::setTextureId(const uint32_t textureId) {
+QTextures::setTextureId(const uint32_t textureId) {
   m_textureId = textureId;
-  emit onTextureId();
 }
 
 void
-QTexturesValue::setTextureUnit(const uint32_t textureUnit) {
+QTextures::setTextureUnit(const uint32_t textureUnit) {
   m_textureUnit = textureUnit;
-  emit onTextureUnit();
 }
 
 void
-QTexturesValue::setTextureWidth(const uint32_t textureWidth) {
+QTextures::setTextureWidth(const uint32_t textureWidth) {
   m_textureWidth = textureWidth;
-  emit onTextureWidth();
 }
 
 void
-QTexturesValue::setTextureHeight(const uint32_t textureHeight) {
+QTextures::setTextureHeight(const uint32_t textureHeight) {
   m_textureHeight = textureHeight;
-  emit onTextureHeight();
 }
 
 void
-QTexturesValue::setTextureDataFomat(const uint32_t textureDataFormat) {
+QTextures::setTextureDataFomat(const uint32_t textureDataFormat) {
   m_textureDataFormat = textureDataFormat;
-  emit onTextureDataFormat();
 }
 
 void
-QTexturesValue::setTextureDataType(const uint32_t textureDataType) {
+QTextures::setTextureDataType(const uint32_t textureDataType) {
   m_textureDataType = textureDataType;
-  emit onTextureDataType();
 }
 
 void
-QTexturesValue::setMipMap(const uint32_t mipMap) {
+QTextures::setMipMap(const uint32_t mipMap) {
   m_mipMap = mipMap;
-  emit onMipMap();
+  emit mipMapChanged();
 }
 
+
+void
+QRenderTextures::onTextures(const TextureData &textures) {
+  /* int size = textures.size();
+  for (int i = 0; i < size; i++) {
+     QTextures textureObj;
+     textureObj.onTextures(textures[i]);
+     m_renderTextures.append(textureObj);
+  } */
+  printf("Inside QRenderTextures::onTextures()\n");
+  m_renderTextures.onTextures(textures);
+}
+
+void
+QRenderTexturesModel::onTextures(RenderId renderId,
+                               SelectionId selectionCount,
+                               const TextureData &texture) {
+  ScopedLock s(m_protect);
+  if (selectionCount != m_current_selection) {
+    m_renders.clear();
+    m_textureData.clear();
+    m_render_strings.clear();
+    m_current_selection = selectionCount;
+  }
+  assert(m_render_strings.size() == m_textureData.size());
+  for (int i = 0; i < m_textureData.size(); ++i) {
+    // if () { -- not sure what this check should be
+      m_renders[i].push_back(renderId);
+      m_render_strings[i].append(QString(",%1").arg(renderId.index()));
+      emit onRendersChanged();
+      return;
+    //  }
+  }
+
+  // program not found
+  m_renders.push_back(std::vector<RenderId>());
+  m_renders.back().push_back(renderId);
+  m_render_strings.push_back(QString("%1").arg(renderId.index()));
+  m_textureData.push_back(std::vector<TextureData>());
+  m_textureData.back().push_back(TextureData());
+  m_textureData.back().back() = texture;
+
+  printf("Inside QRenderTexturesModel::onTextures()\n");
+  if (m_render_strings.size() == 1)
+    setIndexDirect(0);
+
+  emit onRendersChanged();
+}
+
+QStringList
+QRenderTexturesModel::renders() {
+  ScopedLock s(m_protect);
+  return m_render_strings;
+}
+
+void
+QRenderTexturesModel::setIndexDirect(int index) {
+  printf("Inside QRenderTexturesModel::setIndexDirect(), index=%d\n", index);
+  m_textures.onTextures(m_textureData[index][0]);
+}
+
+void
+QRenderTexturesModel::setIndex(int index) {
+  ScopedLock s(m_protect);
+  setIndexDirect(index);
+}
+
+void
+QRenderTexturesModel::setRetrace(IFrameRetrace *retracer,
+                               FrameRetraceModel *model) {
+  m_retracer = retracer;
+  m_retraceModel = model;
+}
+
+
+
+/*
 QTexturesModel::QTexturesModel()
     : m_retrace(NULL), m_current_selection_count(SelectionId(0)) {
 }
@@ -106,7 +172,7 @@ QTexturesModel::init(IFrameRetrace *r,
   m_retrace = r;
   m_render_count = render_count;
   for (int i = 0; i < ids.size(); ++i) {
-    QTexturesValue *q = new QTexturesValue(this);
+    QTextures *q = new QTextures(this);
     m_textures_list.append(q);
     m_textures[ids[i]] = q;
   }
@@ -115,32 +181,23 @@ QTexturesModel::init(IFrameRetrace *r,
   // request frame and initial textures
   s.id = SelectionId(0);
   s.series.push_back(RenderSequence(RenderId(0), RenderId(render_count)));
+  printf("Inside QTexturesModel::init()\n");
   m_retrace->retraceAllTextures(s, ExperimentId(0), this);
   connect(qs, &QSelection::onSelect,
           this, &QTexturesModel::onSelect);
   emit onTexturesChanged();
 }
 
-QQmlListProperty<QTexturesValue>
+QQmlListProperty<QTextures>
 QTexturesModel::textures() {
-  return QQmlListProperty<QTexturesValue>(this, m_textures_list);
+  return QQmlListProperty<QTextures>(this, m_textures_list);
 }
 
 void
 QTexturesModel::onTextures(RenderId renderId,
+                           SelectionId selectionCount,
                      const std::vector<TextureData> &textures) {
-  /*if (m_textures.find(texturesData.textures) == m_textures.end())
-    // the textures groups have many duplicates.  The textures prefers to
-    // use the smallest group with a textures of the same name.
-    return;
-
-  float value = 0;
-  for (auto v : texturesData.data)
-    value += v;
-  if (selectionCount == SelectionId(0))
-    m_textures[texturesData.textures]->setFrameValue(value);
-  else
-    m_textures[texturesData.textures]->setValue(value);*/
+  // Set the texture values here for the UI to pull
 }
 
 void
@@ -161,6 +218,7 @@ QTexturesModel::onSelect(QList<int> selection) {
     }
     last_render = i;
   }
+  printf("Inside QTexturesModel::onSelect()\n");
   m_render_selection.series.back().end = RenderId(last_render + 1);
   m_retrace->retraceAllTextures(m_render_selection, ExperimentId(0), this);
 }
@@ -172,6 +230,7 @@ QTexturesModel::refresh() {
   s.id = SelectionId(0);
   s.series.push_back(RenderSequence(RenderId(0), RenderId(m_render_count)));
   m_retrace->retraceAllTextures(s, ExperimentId(0), this);
+  printf("Inside QTexturesModel::refresh()\n");
 
   // retrace the textures for the current selection
   if (!m_render_selection.series.empty())
@@ -185,3 +244,4 @@ QTexturesModel::~QTexturesModel() {
   m_textures_list.clear();
   m_textures.clear();
 }
+*/

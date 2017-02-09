@@ -86,7 +86,8 @@ class NullCallback : public OnFrameRetrace {
                  SelectionId selectionCount) {}
   void onTexturesList(const std::vector<TexturesId> &ids) {}
   void onTextures(RenderId renderId,
-                     const std::vector<TextureData> &textures) {}
+                  SelectionId selectionCount,
+                  const TextureData &textures) {}
   void onApi(RenderId renderId,
              const std::vector<std::string> &api_calls) {
     calls = api_calls;

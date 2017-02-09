@@ -76,7 +76,8 @@ class MetricsCallback : public OnFrameRetrace {
   void onTexturesList(const std::vector<TexturesId> &ids) {
   }
   void onTextures(RenderId renderId,
-                     const std::vector<TextureData> &textures) {
+                  SelectionId selectionCount,
+                  const TextureData &textures) {
   }
   std::vector<MetricId> ids;
   std::vector<std::string> names;
