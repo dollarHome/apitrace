@@ -278,7 +278,6 @@ FrameRetraceSkeleton::Run() {
           set_shader_assembly(s, shader_resp->mutable_tess_eval());
           set_shader_assembly(s, shader_resp->mutable_geom());
           set_shader_assembly(s, shader_resp->mutable_comp());
-          printf("Inside FrameRetraceSkeleton::SHADER_ASSEMBLY_REQUEST::Run\n");
           writeResponse(m_socket, proto_response, &m_buf);
           break;
         }
@@ -446,6 +445,7 @@ FrameRetraceSkeleton::onTextures(RenderId renderId,
   texture_resp->set_render_id(renderId());
   texture_resp->set_selection_id(selectionCount());
   set_texture_data(textures, texture_resp->mutable_textures());
+  printf("Inside FrameRetraceSkeleton::onTextures()\n");
   writeResponse(m_socket, proto_response, &m_buf);
 }
 

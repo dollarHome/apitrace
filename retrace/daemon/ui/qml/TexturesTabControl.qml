@@ -9,13 +9,13 @@ Item {
     RowLayout {
         anchors.fill: parent
         TableView {
+            id: texture_units
             Layout.fillWidth: true
             Layout.minimumWidth: parent.width/3
             Layout.fillHeight: true
-            model: texturesModel.textures
             TableViewColumn {
-                role: "name"
-                title: "Texture Id"
+                role: "textureUnit"
+                title: "Texture Units"
                 width: parent.width
             }
         }
@@ -34,43 +34,48 @@ Item {
                 }
 
                 ColumnLayout {
-                   anchors.top: texButton.bottom
-                   anchors.topMargin: 10
-                   anchors.horizontalCenter: parent.horizontalCenter
-                Rectangle {
-                   id: textureImage
-                   width: 300
-                   height: 300
-                   visible: true
-                   border.width: 2
-                }
-
-                Item {
-                   id: textureDetails
-                   anchors.top: textureImage.bottom
-                   anchors.topMargin: 10
-                   ColumnLayout {
-                    Text {
-                       text: "Texture Dimensions:"
+                    anchors.top: texButton.bottom
+                    anchors.topMargin: 10
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    Rectangle {
+                        id: textureImage
+                        width: 300
+                        height: 300
+                        visible: true
+                        border.width: 2
                     }
 
-                    Text {
-                       text: "Texture Format:"
-                    }
+                    Item {
+                        id: textureDetails
+                        anchors.top: textureImage.bottom
+                        anchors.topMargin: 10
+                        ColumnLayout {
+                        RowLayout {
+                           Text {
+                              text: "Texture Dimensions:"
+                           }
+                           Text {
+                              text: ""
+                           }
+                        }
 
-                     RowLayout {
                         Text {
-                           text: "MipMap Level:"
+                           text: "Texture Format:"
                         }
 
-                        ComboBox {
-                           id: mipLevel
-                           model: [0, 1, 2, 3]
-                        }
-                     }
-                   }
+                           RowLayout {
+                              Text {
+                                 text: "MipMap Level:"
+                              }
 
-                }
+                              ComboBox {
+                                 id: mipLevel
+                                 model: [0, 1, 2, 3]
+                              }
+                           }
+                        }
+
+                    }
                 }
             }
         }

@@ -86,14 +86,14 @@ QTextures::setMipMap(const uint32_t mipMap) {
 
 void
 QRenderTextures::onTextures(const TextureData &textures) {
-  /* int size = textures.size();
-  for (int i = 0; i < size; i++) {
-     QTextures textureObj;
-     textureObj.onTextures(textures[i]);
-     m_renderTextures.append(textureObj);
-  } */
   printf("Inside QRenderTextures::onTextures()\n");
   m_renderTextures.onTextures(textures);
+}
+
+QRenderTexturesModel::~QRenderTexturesModel() {
+  for (auto m : m_textures_list)
+    delete m;
+  m_textures_list.clear();
 }
 
 void
@@ -105,6 +105,7 @@ QRenderTexturesModel::onTextures(RenderId renderId,
     m_renders.clear();
     m_textureData.clear();
     m_render_strings.clear();
+    m_textures_list.clear();
     m_current_selection = selectionCount;
   }
   assert(m_render_strings.size() == m_textureData.size());
@@ -125,9 +126,20 @@ QRenderTexturesModel::onTextures(RenderId renderId,
   m_textureData.back().push_back(TextureData());
   m_textureData.back().back() = texture;
 
+  /* Add the texture data to the list since we want to
+   * display a list of textureunits and the corresponding
+   * texture values. The above code to add to m_textureData
+   * might be redundant - TO DO: double check
+   * */
+  QTextures *tex = new QTextures();
+  tex->onTextures(texture);
+  m_textures_list.append(tex);
+
+  /*
+   * Commented this code out to use the m_textures_list instead
   printf("Inside QRenderTexturesModel::onTextures()\n");
   if (m_render_strings.size() == 1)
-    setIndexDirect(0);
+    setIndexDirect(0); */
 
   emit onRendersChanged();
 }
@@ -140,7 +152,6 @@ QRenderTexturesModel::renders() {
 
 void
 QRenderTexturesModel::setIndexDirect(int index) {
-  printf("Inside QRenderTexturesModel::setIndexDirect(), index=%d\n", index);
   m_textures.onTextures(m_textureData[index][0]);
 }
 
@@ -157,15 +168,14 @@ QRenderTexturesModel::setRetrace(IFrameRetrace *retracer,
   m_retraceModel = model;
 }
 
-
-
-/*
-QTexturesModel::QTexturesModel()
-    : m_retrace(NULL), m_current_selection_count(SelectionId(0)) {
+QQmlListProperty<QTextures>
+QRenderTexturesModel::texturesList() {
+  return QQmlListProperty<QTextures>(this, m_textures_list);
 }
 
+/*
 void
-QTexturesModel::init(IFrameRetrace *r,
+QRenderTexturesModel::init(IFrameRetrace *r,
                     QSelection *qs,
                     const std::vector<TexturesId> &ids,
                     int render_count) {
@@ -181,27 +191,15 @@ QTexturesModel::init(IFrameRetrace *r,
   // request frame and initial textures
   s.id = SelectionId(0);
   s.series.push_back(RenderSequence(RenderId(0), RenderId(render_count)));
-  printf("Inside QTexturesModel::init()\n");
+  printf("Inside QRenderTexturesModel::init()\n");
   m_retrace->retraceAllTextures(s, ExperimentId(0), this);
   connect(qs, &QSelection::onSelect,
-          this, &QTexturesModel::onSelect);
+          this, &QRenderTexturesModel::onSelect);
   emit onTexturesChanged();
 }
 
-QQmlListProperty<QTextures>
-QTexturesModel::textures() {
-  return QQmlListProperty<QTextures>(this, m_textures_list);
-}
-
 void
-QTexturesModel::onTextures(RenderId renderId,
-                           SelectionId selectionCount,
-                     const std::vector<TextureData> &textures) {
-  // Set the texture values here for the UI to pull
-}
-
-void
-QTexturesModel::onSelect(QList<int> selection) {
+QRenderTexturesModel::onSelect(QList<int> selection) {
   m_render_selection.clear();
   if (selection.empty()) {
     return;
@@ -218,19 +216,19 @@ QTexturesModel::onSelect(QList<int> selection) {
     }
     last_render = i;
   }
-  printf("Inside QTexturesModel::onSelect()\n");
+  printf("Inside QRenderTexturesModel::onSelect()\n");
   m_render_selection.series.back().end = RenderId(last_render + 1);
   m_retrace->retraceAllTextures(m_render_selection, ExperimentId(0), this);
 }
 
 void
-QTexturesModel::refresh() {
+QRenderTexturesModel::refresh() {
   // retrace the textures for the full frame
   RenderSelection s;
   s.id = SelectionId(0);
   s.series.push_back(RenderSequence(RenderId(0), RenderId(m_render_count)));
   m_retrace->retraceAllTextures(s, ExperimentId(0), this);
-  printf("Inside QTexturesModel::refresh()\n");
+  printf("Inside QRenderTexturesModel::refresh()\n");
 
   // retrace the textures for the current selection
   if (!m_render_selection.series.empty())
@@ -238,10 +236,4 @@ QTexturesModel::refresh() {
                                  ExperimentId(0), this);
 }
 
-QTexturesModel::~QTexturesModel() {
-  for (auto m : m_textures_list)
-    delete m;
-  m_textures_list.clear();
-  m_textures.clear();
-}
 */

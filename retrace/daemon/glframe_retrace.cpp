@@ -269,8 +269,6 @@ FrameRetrace::retraceShaderAssembly(const RenderSelection &selection,
       ++current_render_id;
     }
     while (current_render_id < sequence.end) {
-      printf("In shaders, current_render_id = %d\n",
-current_render_id());
       m_renders[current_render_id.index()]->retrace(&tmp_tracker);
       callback->onShaderAssembly(current_render_id,
                                  selection.id,
@@ -469,41 +467,38 @@ current_render_id.index());
       GLenum target = GL_TEXTURE_2D;
       // A minimum of 48 texture units needs to be supported by the HW
       for (GLuint texUnit = 0; texUnit < 48; texUnit++) {
-//        GLuint tmpTexture;
-//        glGenTextures(1, &tmpTexture);
         glActiveTexture(GL_TEXTURE0 + texUnit);
-//        glBindTexture(GL_TEXTURE_2D, tmpTexture);
         glGetIntegerv(GL_TEXTURE_BINDING_2D, &texId);
-        //  glBindTexture(GL_TEXTURE_2D, texId);
-        //  glEnable(target);
-        glGetTexLevelParameteriv(target, 0, GL_TEXTURE_HEIGHT, &imgHt);
-        glGetTexLevelParameteriv(target, 0, GL_TEXTURE_WIDTH, &imgWd);
-        glGetTexParameteriv(target, GL_TEXTURE_MAX_LEVEL, &mipmap);
-        imgSize = 4 * imgHt * imgWd;
-        pixels = (unsigned char*)calloc((sizeof(unsigned char) * imgSize),
+        if (glIsTexture(texId)) {
+          printf("texId = %d for texUnit %d is a texture\n", texId, texUnit);
+          glGetTexLevelParameteriv(target, 0, GL_TEXTURE_HEIGHT, &imgHt);
+          glGetTexLevelParameteriv(target, 0, GL_TEXTURE_WIDTH, &imgWd);
+          glGetTexParameteriv(target, GL_TEXTURE_MAX_LEVEL, &mipmap);
+          imgSize = 4 * imgHt * imgWd;
+          pixels = (unsigned char*)calloc((sizeof(unsigned char) * imgSize),
                                          sizeof(unsigned char));
-        // get the texture image
-        glGetTexImage(target, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-        if (glGetError() != GL_NO_ERROR) {
-          printf("Texture Id obtained = %d\n", texId);
-          printf("Got for texture %d, ht = %d, wd = %d, imgSize = %d\n",
-texUnit, imgHt, imgWd, imgSize);
-          TextureData tex;
-          tex.texture_unit = texUnit;
-          tex.texture_width = imgWd;
-          tex.texture_height = imgHt;
-          // Adjust this correctly
-          tex.texture_data_type = 0;
-          // Adjust this to be internal format
-          tex.texture_data_format = 0;
-          tex.mipmap = mipmap;
-          tex.texture.assign(pixels, pixels + imgSize);
+          // get the texture image
+          glGetTexImage(target, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
-          //  texData.push_back(tex);
-          callback->onTextures(current_render_id, selection.id, tex);
-          //  glDisable(GL_TEXTURE_2D);
+          if (imgSize > 0) {
+            printf("Got for texture %d, ht = %d, wd = %d, imgSize = %d\n",
+                    texUnit, imgHt, imgWd, imgSize);
+            TextureData tex;
+            tex.texture_unit = texUnit;
+            tex.texture_width = imgWd;
+            tex.texture_height = imgHt;
+            // Adjust this correctly
+            tex.texture_data_type = 0;
+            // Adjust this to be internal format
+            tex.texture_data_format = 0;
+            tex.mipmap = mipmap;
+            tex.texture.assign(pixels, pixels + imgSize);
+
+            //  texData.push_back(tex);
+            callback->onTextures(current_render_id, selection.id, tex);
+          }
+          free(pixels);
         }
-        free(pixels);
       }
 
       ++current_render_id;

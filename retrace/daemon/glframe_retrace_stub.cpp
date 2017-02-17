@@ -251,7 +251,6 @@ class RetraceShaderAssemblyRequest : public IRetraceRequest {
     RetraceResponse response;
     // sends single request, read multiple responses
     s->request(m_proto_msg);
-    printf("Inside RetraceShaderAssemblyRequest::retrace\n");
     while (true) {
       response.Clear();
       s->response(&response);

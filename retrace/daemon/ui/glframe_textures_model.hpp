@@ -68,7 +68,9 @@ class QTextures : public QObject,
     m_textureDataFormat = texture.texture_data_type;
     m_textureDataType = texture.texture_data_format;
     m_mipMap = texture.mipmap;
-    printf("Inside QTextures::onTextures()\n");
+    printf("In QTextures::onTextures():");
+    printf("texUnit = %d, width = %d, height = %d\n",
+            m_textureUnit, m_textureWidth, m_textureHeight);
     if (texture.texture.size() > 0)
       m_textureImage.assign(texture.texture.front(), texture.texture.back());
   }
@@ -102,6 +104,8 @@ class QTextures : public QObject,
 };
 
 //  Wrapper to enclose all the textures for a render
+//  TO DO: This class may be redundant when using m_textures_list
+//  Check and remove this code
 class QRenderTextures : public QObject,
                         NoCopy, NoAssign, NoMove {
   Q_OBJECT
@@ -130,20 +134,24 @@ class QRenderTexturesModel : public QObject,
              CONSTANT)
   Q_PROPERTY(QStringList renders
              READ renders NOTIFY onRendersChanged)
+  Q_PROPERTY(QQmlListProperty<glretrace::QTextures> texturesList READ
+             texturesList NOTIFY onTexturesChanged)
 
  public:
   QRenderTexturesModel() : m_retracer(NULL), m_retraceModel(NULL) {}
-  ~QRenderTexturesModel() {}
+  ~QRenderTexturesModel();
   void setRetrace(IFrameRetrace *retracer,
                   FrameRetraceModel *model);
   QRenderTextures *textures() { return &m_textures; }
   void onTextures(RenderId renderId,
                   SelectionId selectionCount,
                   const TextureData &texture);
+  QQmlListProperty<QTextures> texturesList();
   QStringList renders();
   Q_INVOKABLE void setIndex(int index);
  signals:
   void onRendersChanged();
+  void onTexturesChanged();
  private:
   void setIndexDirect(int index);
 
@@ -152,6 +160,7 @@ class QRenderTexturesModel : public QObject,
   QStringList m_render_strings;
   std::vector<std::vector<RenderId>> m_renders;
   std::vector< std::vector<TextureData>> m_textureData;
+  QList<QTextures *> m_textures_list;
   SelectionId m_current_selection;
   IFrameRetrace *m_retracer;
   FrameRetraceModel *m_retraceModel;
